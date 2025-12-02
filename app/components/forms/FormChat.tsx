@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from '@ai-sdk/react';
-import { Loader2, Paperclip, Send, Sparkles, UserRound, Bot } from "lucide-react";
+import { Loader2, Paperclip, Send, Sparkles, UserRound, Bot, AlertCircle } from "lucide-react";
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
@@ -13,8 +13,10 @@ export default function FormChat({ onInteraction }: FormChatProps) {
   // AI SDK
   const { messages, sendMessage } = useChat({
     onError: (error) => {
-      console.log('error: ' + error)
-      setError(error.toString)
+      console.error('Chat error:', error);
+      // ✅ FIX: Call toString() immediately, or use error.message
+      setError(error.message || "Something went wrong. Please check your API key.");
+      setIsLoading(false);
     }
   });
 
@@ -35,7 +37,7 @@ export default function FormChat({ onInteraction }: FormChatProps) {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, error]);
 
   const handleFocus = () => {
     if (!hasInteracted) {
@@ -48,31 +50,25 @@ export default function FormChat({ onInteraction }: FormChatProps) {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
+    setError(''); // Clear previous errors
+
     if (!hasInteracted) {
       setHasInteracted(true);
       if (onInteraction) onInteraction();
     }
 
     try {
-      setIsLoading(true)
-      await sendMessage({ text: input })
-      setInput('')
+      setIsLoading(true);
+      // We rely on useChat's built-in state, but we manually toggle our local loading for the UI transition
+      await sendMessage({ text: input });
+      setInput('');
     }
-    catch (error: any) {
-      console.log('error: ' + error);
-      setError(error.toString());
+    catch (err: any) {
+      console.log('error: ' + err);
+      setError(err.message || 'Failed to send message');
     } finally {
       setIsLoading(false);
     }
-
-    // KEEPING ORIGINAL LOGIC
-    setIsLoading(true);
-    console.log("Sending to StudyBuddy:", input);
-
-    setTimeout(() => {
-      setInput("");
-      setIsLoading(false);
-    }, 1000);
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -140,6 +136,16 @@ export default function FormChat({ onInteraction }: FormChatProps) {
           </div>
         )}
 
+        {/* Error Message Display */}
+        {error && (
+          <div className="flex justify-center w-full animate-in fade-in slide-in-from-bottom-2">
+            <div className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 text-sm rounded-full border border-red-100 dark:border-red-800/50">
+              <AlertCircle className="w-4 h-4" />
+              <span>{error}</span>
+            </div>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -156,9 +162,9 @@ export default function FormChat({ onInteraction }: FormChatProps) {
               ? 'bg-gray-50 border border-gray-200 dark:bg-[#151515] dark:border-gray-800'
               : 'bg-white border border-gray-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] scale-105 p-2 dark:bg-[#111] dark:border-gray-800'
             }
+            ${error ? 'border-red-200 ring-1 ring-red-100 dark:border-red-900 dark:ring-red-900/30' : ''}
           `}
         >
-          {/* Paperclip Button */}
           <button
             type="button"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200 transition-colors"
@@ -166,7 +172,6 @@ export default function FormChat({ onInteraction }: FormChatProps) {
             <Paperclip className="h-5 w-5" />
           </button>
 
-          {/* Text Area */}
           <div className="relative flex-1 min-w-0 py-2">
             <textarea
               ref={textareaRef}
@@ -176,13 +181,11 @@ export default function FormChat({ onInteraction }: FormChatProps) {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask anything..."
-              // Adjusted leading and padding to match the 40px height of buttons
               className="block max-h-[160px] w-full resize-none overflow-y-auto bg-transparent text-[16px] leading-6 text-gray-900 placeholder:text-gray-400 focus:outline-none dark:text-gray-100 dark:placeholder:text-gray-500 scrollbar-modern"
               style={{ minHeight: '24px' }}
             />
           </div>
 
-          {/* Send Button */}
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
