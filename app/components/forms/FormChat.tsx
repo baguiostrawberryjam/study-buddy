@@ -1,15 +1,31 @@
 "use client";
 
-import { Loader2, Paperclip, Send, Sparkles } from "lucide-react";
+
+import { useChat } from '@ai-sdk/react';
+import { Loader2, Paperclip, Send, Sparkles, UserRound, Bot } from "lucide-react";
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
 
 export default function FormChat() {
-  const [input, setInput] = useState<string>("");
+  // AI SDK
+  const { messages, sendMessage } = useChat({
+    onError: (error) => {
+      console.log('error: ' + error)
+      setError(error.toString)
+    }
+  });
+
+  const [error, setError] = useState('');
+  const [input, setInput] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // FIX: Tell TypeScript this ref points to a textarea
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Ref for auto-scrolling
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // UseEffect for Input Change
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -17,10 +33,22 @@ export default function FormChat() {
     }
   }, [input]);
 
+  // Handle Chat Submission
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
+    try {
+      setIsLoading(true)
+      await sendMessage({ text: input })
+      setInput('')
+    }
+    catch (error: any) {
+      console.log('error: ' + error);
+      setError(error.toString());
+    } finally {
+      setIsLoading(false);
+    }
     setIsLoading(true);
     console.log("Sending to StudyBuddy:", input);
 
@@ -30,18 +58,60 @@ export default function FormChat() {
     }, 1000);
   };
 
+  // Handle Enter Press to Submit
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       // We need to cast 'e' or create a synthetic form event, 
       // but calling submit directly is easier here:
       const form = e.currentTarget.form;
-      if (form) form.requestSubmit();
+      if (form && input.trim()) form.requestSubmit();
     }
   };
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4">
+    <div className="mx-auto mt-4 w-full max-w-3xl px-4 text">
+      {/* Message Display Area */}
+      {messages && messages.length > 0 && (
+        <div className="flex-1 flex flex-col gap-1">
+          {messages.map((message) => (
+            <div
+              data-loading={isLoading}
+              key={message.id}
+              className="flex gap-3  p-2"
+            >
+              {message.role === 'user' ? (
+                <div className="h-10 w-10 aspect-square rounded-full border flex items-center justify-center bg-gray-300">
+                  <UserRound />
+                </div>
+              ) : (
+                <div className="h-10 w-10 aspect-square rounded-full border flex items-center justify-center bg-gray-300">
+                  <Bot />
+                </div>
+              )}
+              {message.parts.map((part, i) => {
+                switch (part.type) {
+                  case 'text':
+                    return (
+                      <div
+                        key={`${message.id}-${i}`}
+                        className="bg-gray-800 flex flex-col items-start p-3 rounded-md"
+                      >
+                        <div className="[&>p]:mb-3 [&>p]:last:mb-0 [&>ul]:mb-4 [&>ul>li]:list-disc [&>ul>li]:ml-5 [&>ol>li]:list-decimal [&>ol>li]:ml-5">
+                          <ReactMarkdown>
+                            {part.text}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                    )
+                }
+              })}
+            </div>
+          ))}
+          {/** Mark end of chat */}
+          <div ref={messagesEndRef} />
+        </div>
+      )}
       <form
         onSubmit={handleSubmit}
         data-loading={isLoading}
@@ -59,7 +129,10 @@ export default function FormChat() {
             ref={textareaRef}
             rows={1}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              console.log(input);
+              setInput(e.target.value)
+            }}
             onKeyDown={handleKeyDown}
             placeholder="Ask StudyBuddy a question..."
             className="block max-h-[120px] w-full resize-none overflow-y-auto bg-transparent py-2 text-[15px] leading-relaxed text-gray-900 placeholder:text-gray-400 scrollbar-thin focus:outline-none dark:text-gray-100 dark:placeholder:text-gray-500"
@@ -86,6 +159,7 @@ export default function FormChat() {
         <Sparkles className="w-3 h-3" />
         <span>StudyBuddy can make mistakes. Verify important info.</span>
       </div>
+
     </div>
   );
 }

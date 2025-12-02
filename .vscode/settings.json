@@ -7,8 +7,7 @@
   "editor.minimap.enabled": false,
   "editor.renderWhitespace": "all",
   "editor.codeActionsOnSave": {
-    "source.fixAll": true,
-    "source.organizeImports": true
+    "source.fixAll": "explicit"
   },
   "tailwindCSS.includeLanguages": {
     "typescript": "javascript",
