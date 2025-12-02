@@ -1,16 +1,18 @@
-import Header from "../components/Header";
 import Footer from "../components/Footer";
+import Header from "../components/Header";
 
-export default function({
-    children
-}:{
-    children: React.ReactNode
+export default function ({
+  className,
+  children
+}: {
+  className?: string
+  children: React.ReactNode
 }) {
-    return(
-        <div className="w-full min-h-dvh flex flex-col">
-            <Header />
-            <main className="container mx-auto p-5 flex-1">{children}</main>
-            <Footer />
-        </div>
-    )
+  return (
+    <div className="w-full min-h-dvh flex flex-col">
+      <Header />
+      <main className={`container mx-auto px-5 flex-1 ${className}`}>{children}</main>
+      <Footer />
+    </div>
+  )
 }
