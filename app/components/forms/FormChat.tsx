@@ -1,24 +1,23 @@
 "use client";
 
 import { Loader2, Paperclip, Send, Sparkles } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 
 export default function FormChat() {
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const textareaRef = useRef(null);
+  const [input, setInput] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Auto-resize textarea logic
+  // FIX: Tell TypeScript this ref points to a textarea
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   useEffect(() => {
     if (textareaRef.current) {
-      // Reset height to calculate correct scrollHeight (shrink if text is deleted)
       textareaRef.current.style.height = "auto";
-      // Set to scrollHeight but cap it via CSS max-height
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [input]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
@@ -31,10 +30,13 @@ export default function FormChat() {
     }, 1000);
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      // We need to cast 'e' or create a synthetic form event, 
+      // but calling submit directly is easier here:
+      const form = e.currentTarget.form;
+      if (form) form.requestSubmit();
     }
   };
 
@@ -43,8 +45,7 @@ export default function FormChat() {
       <form
         onSubmit={handleSubmit}
         data-loading={isLoading}
-        // items-end ensures buttons stay at the bottom when text grows
-        className="relative flex w-full items-end gap-2 rounded-3xl border border-gray-200 bg-white p-2 shadow-sm transition-all focus-within:border-gray-300 focus-within:ring-2 focus-within:ring-blue-100 dark:border-gray-800 dark:bg-gray-950 dark:focus-within:border-gray-700 dark:focus-within:ring-gray-800"
+        className="relative flex w-full items-end gap-2 rounded-full border border-gray-200 bg-white p-2 shadow-sm transition-all focus-within:border-gray-300 focus-within:ring-2 focus-within:ring-blue-100 dark:border-gray-800 dark:bg-gray-950 dark:focus-within:border-gray-700 dark:focus-within:ring-gray-800"
       >
         <button
           type="button"
@@ -61,16 +62,14 @@ export default function FormChat() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask StudyBuddy a question..."
-            // CHANGED: Reduced max-h-[200px] to max-h-[120px] (approx 4 lines)
-            // Added overflow-y-auto to show scrollbar when limit is reached
-            className="block max-h-[120px] w-full resize-none overflow-y-auto bg-transparent py-3 text-[15px] leading-relaxed text-gray-900 placeholder:text-gray-400 scrollbar-thin focus:outline-none dark:text-gray-100 dark:placeholder:text-gray-500"
+            className="block max-h-[120px] w-full resize-none overflow-y-auto bg-transparent py-2 text-[15px] leading-relaxed text-gray-900 placeholder:text-gray-400 scrollbar-thin focus:outline-none dark:text-gray-100 dark:placeholder:text-gray-500"
           />
         </div>
 
         <button
           type="submit"
           disabled={!input.trim() || isLoading}
-          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-all duration-200 ${input.trim() && !isLoading
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-200 ${input.trim() && !isLoading
             ? "bg-blue-600 text-white shadow-md hover:bg-blue-700"
             : "bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600"
             }`}
