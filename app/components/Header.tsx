@@ -1,19 +1,24 @@
 import Link from "next/link";
+import Logo from "../components/Logo";
 
 export default function Home() {
-    return <header className="container mx-auto flex flex-row justify-between items-center bg-gray-900 text-white p-4">
+  return (
+    <header className="w-full bg-transparent text-white">
+      {/* Centered inner content */}
+      <div className="max-w-7xl mx-auto flex items-center justify-between p-4">
         
+        {/* Logo */}
+        <Link href="/">
+          <Logo />
+        </Link>
 
-        <div className="container flex items-center justify-between mx-auto p-5">
-            {/** Logo */}
-            <div className="font-bold">StudyBuddy</div>
+        {/* Buttons */}
+        <div className="flex gap-3">
+          <Link href="/login" className="button border">Login</Link>
+          <Link href="/signup" className="button border">Sign-up</Link>
         </div>
 
-        <div className="flex gap-3 ">
-            {/** Action Buttons */}
-                <Link href="/login" className="button">Login</Link>
-                <Link href="/signup" className="button">Sign-up</Link>
-        </div>
-
+      </div>
     </header>
+  );
 }
