@@ -1,12 +1,12 @@
 import Link from "next/link";
 
-export default function Login() {
+export default function Signup() {
   return (
     <section>
       <div>
         <Link href="/">Home</Link>
       </div>
-      <div>Login</div>
+      <div>Sign-up</div>
     </section>
   );
 }
