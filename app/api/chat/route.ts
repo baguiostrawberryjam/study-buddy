@@ -27,6 +27,8 @@ export async function POST(request: Request) {
   The user is not logged in, so politely explain that signing in will unlock:
   - Personalized tutoring and chat experience.
   - Answer based on their uploaded documents (RAG)
+  
+  Reminder: do not answer anything unrelated to studies and research.
   `
     : ``
 

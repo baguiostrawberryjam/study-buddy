@@ -1,13 +1,29 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Logo from "../components/Logo";
 
 export default function Header() {
+  const pathname = usePathname();
+
+  const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (pathname === "/") {
+      e.preventDefault(); // Stop Next.js from doing a "soft" navigate
+      window.location.reload(); // Force a hard refresh to reset states
+    }
+  };
+
   return (
     <header className="w-full">
       <div className="max-w-7xl mx-auto flex items-center justify-between p-4">
 
         {/* Logo */}
-        <Link href="/" className="hover:opacity-80 transition-opacity">
+        <Link
+          href="/"
+          onClick={handleLogoClick}
+          className="hover:opacity-80 transition-opacity"
+        >
           <Logo />
         </Link>
 
@@ -23,7 +39,7 @@ export default function Header() {
             href="/signup"
             className="px-5 py-2 bg-foreground text-background rounded-full hover:opacity-90 transition-all shadow-sm"
           >
-            Sign up
+            Sign-up
           </Link>
         </div>
 

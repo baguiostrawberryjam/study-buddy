@@ -72,15 +72,17 @@ export default function FormChat({ onInteraction }: FormChatProps) {
       setHasInteracted(true);
       if (onInteraction) onInteraction();
     }
-
+    let chatInput = input;
+    setInput('');
     try {
       setIsLoading(true);
-      await sendMessage({ text: input });
+      await sendMessage({ text: chatInput });
       setInput('');
     }
     catch (err: any) {
       setError(err.message || 'Failed to send message');
     } finally {
+      ``
       setIsLoading(false);
     }
   };
@@ -105,7 +107,7 @@ export default function FormChat({ onInteraction }: FormChatProps) {
       */}
       <div
         className={`
-          relative flex-1 overflow-y-auto pr-4 pl-1 space-y-6 pb-6 scrollbar-modern
+          relative flex-1 overflow-y-auto transition-all duration-1000 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] pr-4 pl-1 space-y-6 pb-6 scrollbar-modern
           ${hasInteracted ? 'flex opacity-100 min-h-0' : 'hidden opacity-0 h-0'}
         `}
       >

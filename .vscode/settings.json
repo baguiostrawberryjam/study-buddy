@@ -13,5 +13,6 @@
     "typescript": "javascript",
     "typescriptreact": "javascriptreact"
   },
-  "tailwindCSS.emmetCompletions": true
+  "tailwindCSS.emmetCompletions": true,
+  "prisma.pinToPrisma6": true
 }
