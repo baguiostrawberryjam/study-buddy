@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Logo from "../components/Logo";
+import { useSession, signOut } from "next-auth/react";
 
 export default function Header() {
   const pathname = usePathname();
+  const { data: session, status } = useSession();
 
   const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (pathname === "/") {
-      e.preventDefault(); // Stop Next.js from doing a "soft" navigate
-      window.location.reload(); // Force a hard refresh to reset states
+      e.preventDefault();
+      window.location.reload();
     }
   };
 
@@ -29,20 +31,39 @@ export default function Header() {
 
         {/* Buttons */}
         <div className="flex gap-3 text-sm font-medium">
-          <Link
-            href="/login"
-            className="px-5 py-2 rounded-full text-gray-600 hover:text-black dark:text-gray-300 dark:hover:text-white transition-colors"
-          >
-            Login
-          </Link>
-          <Link
-            href="/signup"
-            className="px-5 py-2 bg-foreground text-background rounded-full hover:opacity-90 transition-all shadow-sm"
-          >
-            Sign-up
-          </Link>
-        </div>
+          {/* Loading state (optional) */}
+          {status === "loading" && (
+            <span className="text-gray-600 dark:text-gray-300">...</span>
+          )}
 
+          {/* Logged OUT */}
+          {status === "unauthenticated" && (
+            <>
+              <Link
+                href="/login"
+                className="px-5 py-2 rounded-full text-gray-600 hover:text-black dark:text-gray-300 dark:hover:text-white transition-colors"
+              >
+                Login
+              </Link>
+              <Link
+                href="/signup"
+                className="px-5 py-2 bg-foreground text-background rounded-full hover:opacity-90 transition-all shadow-sm"
+              >
+                Sign-up
+              </Link>
+            </>
+          )}
+
+          {/* Logged IN */}
+          {status === "authenticated" && (
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="px-5 py-2 bg-foreground text-background rounded-full hover:opacity-90 transition-all shadow-sm"
+            >
+              Logout
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );

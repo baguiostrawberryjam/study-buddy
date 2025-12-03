@@ -2,22 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Sparkles, Mail, Lock } from "lucide-react";
-import { useState } from "react";
-// Adjust this import path based on where your components folder is located
-// If this file is app/login/page.tsx and Logo is app/components/Logo.tsx, use ../../components/Logo
+import { ArrowLeft, Sparkles } from "lucide-react";
+// Adjust imports based on your file structure
 import Logo from "../components/Logo";
+import FormLogin from "../components/forms/FormLogin";
 
 export default function Login() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => setIsLoading(false), 2000);
-  };
 
   return (
     <div className="min-h-screen w-full flex flex-col bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-gray-100 overflow-hidden relative">
@@ -58,45 +49,8 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Form Section */}
-        <form onSubmit={handleSubmit} className="w-full space-y-4">
-
-          {/* Email Input */}
-          <div className="relative group">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-white-500 transition-colors" />
-            <input
-              type="email"
-              placeholder="Email address"
-              required
-              className="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-800 rounded-2xl outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-all placeholder:text-gray-400"
-            />
-          </div>
-
-          {/* Password Input */}
-          <div className="relative group">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-white-500 transition-colors" />
-            <input
-              type="password"
-              placeholder="Password"
-              required
-              className="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-gray-800 rounded-2xl outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-all placeholder:text-gray-400"
-            />
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-3.5 mt-10 rounded-full bg-zinc-900 text-white font-medium hover:bg-black dark:bg-white dark:text-black dark:hover:bg-gray-200 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-sm flex items-center justify-center gap-2 mt-4"
-          >
-            {isLoading ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
-            ) : (
-              "Login"
-            )}
-          </button>
-
-        </form>
+        {/* Form Component */}
+        <FormLogin />
 
         {/* Footer / Sign up Link */}
         <p className="mt-8 text-center text-sm text-gray-500">
