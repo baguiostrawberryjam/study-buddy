@@ -58,7 +58,7 @@ export default function Header() {
           {status === "authenticated" && (
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="px-5 py-2 bg-foreground text-background rounded-full hover:opacity-90 transition-all shadow-sm"
+              className="px-5 py-2 cursor-pointer bg-foreground text-background rounded-full hover:opacity-90 transition-all shadow-sm"
             >
               Logout
             </button>

@@ -2,7 +2,7 @@
 
 import prisma from '../prisma'
 import { User } from '@prisma/client'
-import { hash } from 'bcrypt'
+import { hash } from 'bcryptjs'
 
 type ActionError = {
   field: string

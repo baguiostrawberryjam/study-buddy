@@ -1,10 +1,12 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useActionState } from 'react'
 import { Loader2, Mail, Lock, User } from 'lucide-react'
-import { createUser } from '../../lib/actions/user' // Pointing to your uploaded file
+import { createUser } from '../../lib/actions/user'
+import toast from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
 
-// Initial state matching your ActionResponse type
 const initialState = {
   success: false,
   message: null,
@@ -18,27 +20,25 @@ const initialState = {
 }
 
 export default function FormSignUp() {
+  const router = useRouter()
   const [state, formAction, isPending] = useActionState(createUser, initialState)
 
-  // Helper to check if a specific field has an error
-  const getError = (field: string) => {
-    return state.errors?.find((err) => err.field === field)?.message
-  }
+  const getError = (field: string) => state.errors?.find((err) => err.field === field)?.message
+
+  // ✅ Run side effects on state changes
+  useEffect(() => {
+    if (state.success) {
+      toast.success('Account created successfully! Redirecting...')
+      setTimeout(() => router.push('/login'), 1500)
+    }
+
+    if (state.message && !state.success) {
+      toast.error(state.message)
+    }
+  }, [state.success, state.message, router])
 
   return (
     <form action={formAction} className="w-full space-y-4">
-
-      {/* Global Success/Error Message */}
-      {!state.success && state.message && (
-        <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg text-center font-medium">
-          {state.message}
-        </div>
-      )}
-      {state.success && (
-        <div className="p-3 text-sm text-green-600 bg-green-50 rounded-lg text-center font-medium">
-          Account created successfully! Redirecting...
-        </div>
-      )}
 
       {/* Name Input */}
       <div>
@@ -50,17 +50,11 @@ export default function FormSignUp() {
             placeholder="Full Name"
             defaultValue={state.input?.name}
             className={`w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-[#111] border rounded-2xl outline-none focus:ring-2 transition-all placeholder:text-gray-400
-              ${getError('name')
-                ? 'border-red-500 focus:ring-red-200'
-                : 'border-gray-200 dark:border-gray-800 focus:ring-gray-200 dark:focus:ring-gray-700'
-              }`}
+              ${getError('name') ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 dark:border-gray-800 focus:ring-gray-200 dark:focus:ring-gray-700'}
+            `}
           />
         </div>
-        {getError('name') && (
-          <p className="text-red-500 text-xs mt-1 ml-2 font-medium slide-in-from-top-1">
-            {getError('name')}
-          </p>
-        )}
+        {getError('name') && <p className="text-red-500 text-xs mt-1 ml-2 font-medium">{getError('name')}</p>}
       </div>
 
       {/* Email Input */}
@@ -69,21 +63,15 @@ export default function FormSignUp() {
           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-zinc-900 dark:group-focus-within:text-white transition-colors" />
           <input
             name="email"
-            type="text" // using text helps test regex, but email is fine too
+            type="email"
             placeholder="Email address"
             defaultValue={state.input?.email}
             className={`w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-[#111] border rounded-2xl outline-none focus:ring-2 transition-all placeholder:text-gray-400
-              ${getError('email')
-                ? 'border-red-500 focus:ring-red-200'
-                : 'border-gray-200 dark:border-gray-800 focus:ring-gray-200 dark:focus:ring-gray-700'
-              }`}
+              ${getError('email') ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 dark:border-gray-800 focus:ring-gray-200 dark:focus:ring-gray-700'}
+            `}
           />
         </div>
-        {getError('email') && (
-          <p className="text-red-500 text-xs mt-1 ml-2 font-medium slide-in-from-top-1">
-            {getError('email')}
-          </p>
-        )}
+        {getError('email') && <p className="text-red-500 text-xs mt-1 ml-2 font-medium">{getError('email')}</p>}
       </div>
 
       {/* Password Input */}
@@ -96,17 +84,11 @@ export default function FormSignUp() {
             placeholder="Password"
             defaultValue={state.input?.password}
             className={`w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-[#111] border rounded-2xl outline-none focus:ring-2 transition-all placeholder:text-gray-400
-              ${getError('password')
-                ? 'border-red-500 focus:ring-red-200'
-                : 'border-gray-200 dark:border-gray-800 focus:ring-gray-200 dark:focus:ring-gray-700'
-              }`}
+              ${getError('password') ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 dark:border-gray-800 focus:ring-gray-200 dark:focus:ring-gray-700'}
+            `}
           />
         </div>
-        {getError('password') && (
-          <p className="text-red-500 text-xs mt-1 ml-2 font-medium slide-in-from-top-1">
-            {getError('password')}
-          </p>
-        )}
+        {getError('password') && <p className="text-red-500 text-xs mt-1 ml-2 font-medium">{getError('password')}</p>}
       </div>
 
       {/* Submit Button */}
@@ -115,13 +97,8 @@ export default function FormSignUp() {
         disabled={isPending}
         className="w-full py-3.5 rounded-full bg-zinc-900 text-white font-medium hover:bg-black dark:bg-white dark:text-black dark:hover:bg-gray-200 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-sm flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
       >
-        {isPending ? (
-          <Loader2 className="w-6 h-6 animate-spin" />
-        ) : (
-          "Sign-up"
-        )}
+        {isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Sign-up'}
       </button>
-
     </form>
   )
 }

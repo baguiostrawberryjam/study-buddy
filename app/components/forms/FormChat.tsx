@@ -1,9 +1,11 @@
 "use client";
 
 import { useChat } from '@ai-sdk/react';
-import { Loader2, Paperclip, Send, Sparkles, UserRound, Bot, AlertCircle } from "lucide-react";
-import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
+import { Loader2, Paperclip, Send, Sparkles, Bot, AlertCircle } from "lucide-react";
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState, ChangeEvent } from "react";
 import ReactMarkdown from "react-markdown";
+import { uploadAndEmbedFile } from '../../lib/actions/embedding'; // Import your server action
+import toast from 'react-hot-toast'; // Ensure you have this installed
 
 interface FormChatProps {
   onInteraction?: () => void;
@@ -22,11 +24,14 @@ export default function FormChat({ onInteraction }: FormChatProps) {
   const [error, setError] = useState('');
   const [input, setInput] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isUploading, setIsUploading] = useState<boolean>(false); // New state for file upload
   const [hasInteracted, setHasInteracted] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null); // Ref for the hidden file input
 
+  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -45,7 +50,7 @@ export default function FormChat({ onInteraction }: FormChatProps) {
     // Scroll immediately
     scrollToBottom();
 
-    // Retry after layout shifts (fixes the "first chat" scroll issue)
+    // Retry after layout shifts
     const timeoutId = setTimeout(scrollToBottom, 100);
     const timeoutIdLong = setTimeout(scrollToBottom, 1000);
 
@@ -53,7 +58,7 @@ export default function FormChat({ onInteraction }: FormChatProps) {
       clearTimeout(timeoutId);
       clearTimeout(timeoutIdLong);
     };
-  }, [messages, isLoading, hasInteracted]); // Added hasInteracted dependency
+  }, [messages, isLoading, hasInteracted]);
 
   const handleFocus = () => {
     if (!hasInteracted) {
@@ -82,7 +87,6 @@ export default function FormChat({ onInteraction }: FormChatProps) {
     catch (err: any) {
       setError(err.message || 'Failed to send message');
     } finally {
-      ``
       setIsLoading(false);
     }
   };
@@ -95,23 +99,70 @@ export default function FormChat({ onInteraction }: FormChatProps) {
     }
   };
 
+  // --- NEW: File Upload Handler ---
+  const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (5MB limit matches your server action)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File is too large. Max size is 5MB.");
+      e.target.value = ''; // Reset input
+      return;
+    }
+
+    if (file.type !== 'application/pdf') {
+      toast.error("Only PDF files are supported currently.");
+      e.target.value = '';
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+
+      // Ensure UI expands if this is the first interaction
+      if (!hasInteracted) {
+        setHasInteracted(true);
+        if (onInteraction) onInteraction();
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Call the server action directly
+      // Passing 'null' as the first argument because the action expects 'prevState'
+      const result = await uploadAndEmbedFile(null, formData);
+
+      if (result.error) {
+        toast.error(result.error);
+        setError(result.error);
+      } else {
+        toast.success("File added to knowledge base!");
+        // Optional: You could append a system message here saying "File uploaded"
+      }
+    } catch (err: any) {
+      console.error("Upload failed", err);
+      toast.error("Failed to upload file.");
+      setError("Failed to upload file. Please try again.");
+    } finally {
+      setIsUploading(false);
+      // Reset the input so the same file can be selected again if needed
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   return (
-    // REMOVED: transition-all on this wrapper. It causes layout confusion.
     <div className={`flex flex-col w-full max-w-3xl mx-auto min-h-0 ${hasInteracted ? 'h-full' : 'h-auto'}`}>
 
       {/* Message Display Area */}
-      {/* FIX: Removed 'transition-all' from this div. 
-         We rely on the parent (page.tsx) shrinking the hero text.
-         This div simply switches from hidden -> flex-1 immediately.
-         This ensures overflow-y-auto works instantly.
-      */}
       <div
         className={`
           relative flex-1 overflow-y-auto transition-all duration-1000 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] pr-4 pl-1 space-y-6 pb-6 scrollbar-modern
           ${hasInteracted ? 'flex opacity-100 min-h-0' : 'hidden opacity-0 h-0'}
         `}
       >
-        {/* We wrap the content in a fade-in div so the *content* is smooth, but the scroll container is rigid */}
         <div className="flex flex-col w-full space-y-6 animate-in fade-in duration-1000">
           {messages && messages.length > 0 ? (
             messages.map((message) => (
@@ -143,20 +194,25 @@ export default function FormChat({ onInteraction }: FormChatProps) {
               </div>
             ))
           ) : (
-            // Keep this minimal to prevent layout jumping
             <div className="h-4"></div>
           )}
 
-          {/* Loading Bubble */}
-          {isLoading && (
+          {/* Loading Bubble (Chat or Upload) */}
+          {(isLoading || isUploading) && (
             <div className="flex gap-4 w-full justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="shrink-0 h-8 w-8 rounded-full border border-gray-100 bg-white dark:bg-black dark:border-gray-800 flex items-center justify-center shadow-sm mt-1">
                 <Bot className="h-4 w-4 text-gray-900 dark:text-gray-100" />
               </div>
               <div className="bg-white dark:bg-[#111] px-5 py-4 rounded-[20px] rounded-tl-sm border border-gray-100 dark:border-zinc-800 flex items-center gap-1.5 shadow-sm">
-                <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce"></span>
+                {isUploading ? (
+                  <span className="text-sm text-gray-500">Processing document...</span>
+                ) : (
+                  <>
+                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce"></span>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -191,11 +247,27 @@ export default function FormChat({ onInteraction }: FormChatProps) {
             ${error ? 'border-red-200 ring-1 ring-red-100 dark:border-red-900 dark:ring-red-900/30' : ''}
           `}
         >
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            className="hidden"
+            accept=".pdf" // Restricted to PDF as per your server action logic
+          />
+
+          {/* Paperclip Button */}
           <button
             type="button"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200 transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading || isUploading}
+            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Paperclip className="h-5 w-5" />
+            {isUploading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+            ) : (
+              <Paperclip className="h-5 w-5" />
+            )}
           </button>
 
           <div className="relative flex-1 min-w-0 py-2">
@@ -214,16 +286,16 @@ export default function FormChat({ onInteraction }: FormChatProps) {
 
           <button
             type="submit"
-            disabled={!input.trim() || isLoading}
+            disabled={!input.trim() || isLoading || isUploading}
             className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors duration-200 ${input.trim() && !isLoading
-              ? "bg-zinc-900 text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-gray-200 shadow-sm"
+              ? "cursor-pointer bg-zinc-900 text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-gray-200 shadow-sm"
               : "bg-transparent text-gray-300 dark:text-zinc-700 cursor-not-allowed"
               }`}
           >
             {isLoading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              <Send className="h-5 w-5" />
+              <Send className="h-5 w-5 " />
             )}
           </button>
         </form>
