@@ -24,7 +24,7 @@ export default function Default({
           <Header />
         </div>
 
-        {/* Children */}z
+        {/* Children */}
         {children}
 
         {/* Footer */}
