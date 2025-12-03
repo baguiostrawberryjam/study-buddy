@@ -1,7 +1,8 @@
 import Footer from "../components/Footer";
 import Header from "../components/Header";
+import BackgroundDecor from "../components/BackgroundDecor";
 
-export default function ({
+export default function Default({
   className,
   children
 }: {
@@ -9,16 +10,21 @@ export default function ({
   children: React.ReactNode
 }) {
   return (
-    <div className="w-full min-h-dvh flex flex-col">
+    // REMOVED background colors here so the fixed BackgroundDecor is visible
+    <div className="w-full min-h-dvh flex flex-col relative isolation-isolate">
 
-      <main className={`${className}`}>
+      {/* The Gradient Background */}
+      <BackgroundDecor />
+
+      {/* Main Content */}
+      <main className={`${className} relative z-0 flex-1 flex flex-col`}>
 
         {/* Fixed Header */}
-        <div className="shrink-0 z-50 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 transition-all duration-500">
+        <div className="shrink-0 z-50 bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800/50 transition-all duration-500">
           <Header />
         </div>
 
-        {/* Main Content*/}
+        {/* Children */}z
         {children}
 
         {/* Footer */}

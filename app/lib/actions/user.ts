@@ -1,10 +1,10 @@
 'use server'
 
-import prisma from '@/lib/prisma'
+import prisma from '../prisma'
 import { User } from '@prisma/client'
 import { hash } from 'bcrypt'
 
-type ActionError {
+type ActionError = {
   field: string
   message: string
 }
@@ -35,7 +35,7 @@ export async function createUser(
   if (!password) errors.push({ field: 'password', message: 'Password is required' })
 
   // Validate email format
-  const emailRegex = /^[^/]
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email as string))
     errors.push({ field: 'email', message: 'Invalid email format' })
 
@@ -44,7 +44,7 @@ export async function createUser(
       success: false,
       payload: null,
       message: null,
-      errors: [],
+      errors: errors,
       input: { name, email, password }
     }
   }
@@ -60,7 +60,7 @@ export async function createUser(
         success: false,
         payload: null,
         message: 'User already exists',
-        errors: [],
+        errors: errors,
         input: { name, email, password }
       }
     }
@@ -79,7 +79,7 @@ export async function createUser(
       success: true,
       payload: user,
       message: null,
-      errors: [],
+      errors: errors,
       input: { name, email, password }
     }
   }
@@ -88,7 +88,7 @@ export async function createUser(
       success: false,
       payload: null,
       message: 'Something went wrong',
-      errors: [],
+      errors: errors,
       input: { name, email, password }
     }
   }
