@@ -59,11 +59,7 @@ export async function POST(req: Request) {
 
         // Use parameterized query with Prisma.sql
         // Note: Vector operations require casting, embedding is from trusted AI SDK
-        const results = await prisma.$queryRaw<{
-          content: string
-          metadata: any
-          similarity: number
-        }[]>(
+        const results = await prisma.$queryRaw(
           Prisma.sql`
             SELECT 
               "content",
@@ -74,7 +70,11 @@ export async function POST(req: Request) {
             ORDER BY "vector" <=> ${embeddingVector}::vector
             LIMIT 5
           `
-        )
+        ) as Array<{
+          content: string
+          metadata: any
+          similarity: number
+        }>
 
         // 1.3 Combine retrieved chunks
         if (results.length > 0) {
