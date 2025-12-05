@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import type { File } from '@prisma/client'
+import type { File as FileModel } from '@prisma/client'
 import Modal from './Modal'
 import { format } from 'date-fns'
 
-export default function FileCard({ file }: { file: File }) {
+export default function FileCard({ file }: { file: FileModel }) {
   const [showModal, setShowModal] = useState(false)
 
   return (
