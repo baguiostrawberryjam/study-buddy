@@ -48,9 +48,9 @@ export async function POST(req: Request) {
 
     if (userFiles.length > 0) {
       // File IDs come from Prisma (safe), user ID already validated
-      const fileIds = userFiles.map(f => f.id)
+      const fileIds = userFiles.map((f: { id: string }) => f.id)
       // Validate all file IDs are valid CUIDs
-      const validFileIds = fileIds.filter(id => /^c[a-z0-9]{24}$/.test(id))
+      const validFileIds = fileIds.filter((id: string) => /^c[a-z0-9]{24}$/.test(id))
 
       if (validFileIds.length > 0) {
         const embeddingVector = JSON.stringify(queryEmbedding.embedding)
