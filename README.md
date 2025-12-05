@@ -2,7 +2,46 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+### 1. Environment Variables Setup
+
+Create a `.env.local` file in the root directory with the following variables:
+
+```env
+# Database (PostgreSQL with vector extension)
+DATABASE_URL="postgresql://user:password@host:port/database?sslmode=require"
+SHADOW_DATABASE_URL="postgresql://user:password@host:port/shadow_database?sslmode=require"
+
+# Google Generative AI (Gemini)
+GOOGLE_GENERATIVE_AI_API_KEY="your-google-ai-api-key-here"
+
+# Vercel Blob Storage (REQUIRED for file uploads)
+BLOB_READ_WRITE_TOKEN="vercel_blob_rw_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# NextAuth
+NEXTAUTH_SECRET="your-nextauth-secret-here"
+NEXTAUTH_URL="http://localhost:3000"
+```
+
+#### How to get each token:
+
+- **DATABASE_URL**: From your PostgreSQL provider (Neon, Supabase, etc.)
+- **GOOGLE_GENERATIVE_AI_API_KEY**: Get from [Google AI Studio](https://aistudio.google.com/app/apikey)
+- **BLOB_READ_WRITE_TOKEN**: 
+  1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
+  2. Navigate to your project → Settings → Environment Variables
+  3. Or create a token at [Vercel Account Tokens](https://vercel.com/account/tokens)
+  4. The token should start with `vercel_blob_rw_`
+- **NEXTAUTH_SECRET**: Generate with: `openssl rand -base64 32` (or any random string)
+
+### 2. Install Dependencies & Setup Database
+
+```bash
+npm install
+npm run db:migrate
+npm run db:generate
+```
+
+### 3. Run Development Server
 
 ```bash
 npm run dev

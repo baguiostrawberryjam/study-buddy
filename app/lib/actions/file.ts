@@ -61,9 +61,9 @@ export const getFilesByUser = cache(
           return {
             success: false,
             payload: null,
-            message: 'Failed to fetch files',
+            message: 'Unable to load your files at this time',
             errors: [
-              { field: 'system', message: 'An unexpected error occurred' },
+              { field: 'system', message: 'An unexpected error occurred while retrieving your files. Please refresh the page and try again. If the problem continues, contact support.' },
             ],
           }
         }
@@ -115,11 +115,11 @@ export async function deleteFile(
     return {
       success: false,
       payload: null,
-      message: '',
+      message: 'Unable to delete the file',
       errors: [
         {
           field: 'system',
-          message: 'Error deleting file. Please contact admin.',
+          message: `Failed to delete "${file.name}". This may be due to a temporary server issue or the file may have already been removed. Please refresh the page and try again. If the problem persists, contact support.`,
         },
       ],
     }

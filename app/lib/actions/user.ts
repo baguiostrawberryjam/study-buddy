@@ -30,14 +30,14 @@ export async function createUser(
   // Validate data
   let errors: ActionError[] = []
 
-  if (!name) errors.push({ field: 'name', message: 'Name is required' })
-  if (!email) errors.push({ field: 'email', message: 'Email is required' })
-  if (!password) errors.push({ field: 'password', message: 'Password is required' })
+  if (!name) errors.push({ field: 'name', message: 'Please enter your full name to create your account.' })
+  if (!email) errors.push({ field: 'email', message: 'Please enter your email address. This will be used to sign in to your account.' })
+  if (!password) errors.push({ field: 'password', message: 'Please create a password for your account. Choose a strong password to keep your account secure.' })
 
   // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email as string))
-    errors.push({ field: 'email', message: 'Invalid email format' })
+  if (email && !emailRegex.test(email as string))
+    errors.push({ field: 'email', message: 'Please enter a valid email address. Email addresses should be in the format: yourname@example.com' })
 
   if (errors.length > 0) {
     return {
@@ -59,7 +59,7 @@ export async function createUser(
       return {
         success: false,
         payload: null,
-        message: 'User already exists',
+        message: `An account with the email "${email}" already exists. Please sign in instead, or use a different email address to create a new account.`,
         errors: errors,
         input: { name, email, password }
       }
@@ -84,10 +84,11 @@ export async function createUser(
     }
   }
   catch (error) {
+    console.error('User creation error:', error)
     return {
       success: false,
       payload: null,
-      message: 'Something went wrong',
+      message: 'Unable to create your account at this time. This may be due to a temporary server issue. Please try again in a few moments. If the problem persists, contact support.',
       errors: errors,
       input: { name, email, password }
     }

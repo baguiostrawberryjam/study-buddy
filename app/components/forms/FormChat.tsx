@@ -1,22 +1,28 @@
 "use client";
 
 import { useChat } from '@ai-sdk/react';
-import { Loader2, Paperclip, Send, Sparkles, Bot, AlertCircle } from "lucide-react";
+import { Loader2, Paperclip, Send, Sparkles, Bot, AlertCircle, FileText } from "lucide-react";
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState, ChangeEvent } from "react";
 import ReactMarkdown from "react-markdown";
-import { uploadAndEmbedFile } from '../../lib/actions/embedding'; // Import your server action
-import toast from 'react-hot-toast'; // Ensure you have this installed
+import { useSession } from 'next-auth/react';
+import { uploadAndEmbedFile } from '../../lib/actions/embedding';
+import { getFilesByUser } from '../../lib/actions/file';
+import type { File as FileModel } from '@prisma/client';
+import toast from 'react-hot-toast';
 
 interface FormChatProps {
   onInteraction?: () => void;
 }
 
 export default function FormChat({ onInteraction }: FormChatProps) {
+  // Session for user ID
+  const { data: session } = useSession();
+  
   // AI SDK
   const { messages, sendMessage } = useChat({
     onError: (error) => {
       console.error('Chat error:', error);
-      setError(error.message || "Something went wrong.");
+      setError(error.message || "Unable to send your message. Please check your internet connection and try again.");
       setIsLoading(false);
     }
   });
@@ -24,8 +30,9 @@ export default function FormChat({ onInteraction }: FormChatProps) {
   const [error, setError] = useState('');
   const [input, setInput] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isUploading, setIsUploading] = useState<boolean>(false); // New state for file upload
+  const [isUploading, setIsUploading] = useState<boolean>(false);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<FileModel[]>([]);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -38,6 +45,23 @@ export default function FormChat({ onInteraction }: FormChatProps) {
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [input]);
+
+  // Fetch uploaded files when user is logged in
+  useEffect(() => {
+    const fetchFiles = async () => {
+      if (session?.user?.id) {
+        try {
+          const result = await getFilesByUser(session.user.id);
+          if (result.success && result.payload) {
+            setUploadedFiles(result.payload);
+          }
+        } catch (err) {
+          console.error('Failed to fetch files:', err);
+        }
+      }
+    };
+    fetchFiles();
+  }, [session?.user?.id]);
 
   // Robust Scroll Logic
   useEffect(() => {
@@ -58,7 +82,7 @@ export default function FormChat({ onInteraction }: FormChatProps) {
       clearTimeout(timeoutId);
       clearTimeout(timeoutIdLong);
     };
-  }, [messages, isLoading, hasInteracted]);
+  }, [messages, isLoading, hasInteracted, uploadedFiles]);
 
   const handleFocus = () => {
     if (!hasInteracted) {
@@ -85,7 +109,8 @@ export default function FormChat({ onInteraction }: FormChatProps) {
       setInput('');
     }
     catch (err: any) {
-      setError(err.message || 'Failed to send message');
+      const errorMessage = err?.message || 'Unable to send your message';
+      setError(`${errorMessage}. Please check your internet connection and try again. If the problem persists, refresh the page.`);
     } finally {
       setIsLoading(false);
     }
@@ -104,15 +129,17 @@ export default function FormChat({ onInteraction }: FormChatProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate size (5MB limit matches your server action)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("File is too large. Max size is 5MB.");
+    // Validate size (50MB limit matches server action)
+    const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+    if (file.size > MAX_FILE_SIZE) {
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      toast.error(`File "${file.name}" is too large (${fileSizeMB} MB). Maximum file size allowed is 50 MB. Please choose a smaller file or compress your PDF.`);
       e.target.value = ''; // Reset input
       return;
     }
 
     if (file.type !== 'application/pdf') {
-      toast.error("Only PDF files are supported currently.");
+      toast.error(`File "${file.name}" is not a PDF file. Currently, only PDF documents are supported. Please convert your file to PDF format and try again.`);
       e.target.value = '';
       return;
     }
@@ -138,12 +165,19 @@ export default function FormChat({ onInteraction }: FormChatProps) {
         setError(result.error);
       } else {
         toast.success("File added to knowledge base!");
-        // Optional: You could append a system message here saying "File uploaded"
+        // Refresh files list after successful upload
+        if (session?.user?.id) {
+          const filesResult = await getFilesByUser(session.user.id);
+          if (filesResult.success && filesResult.payload) {
+            setUploadedFiles(filesResult.payload);
+          }
+        }
       }
     } catch (err: any) {
       console.error("Upload failed", err);
-      toast.error("Failed to upload file.");
-      setError("Failed to upload file. Please try again.");
+      const errorMessage = err?.message || "An unexpected error occurred";
+      toast.error(`Failed to upload "${file.name}". ${errorMessage} Please check your internet connection and try again.`);
+      setError(`File upload failed: ${errorMessage}. Please try again or contact support if the problem persists.`);
     } finally {
       setIsUploading(false);
       // Reset the input so the same file can be selected again if needed
@@ -154,16 +188,51 @@ export default function FormChat({ onInteraction }: FormChatProps) {
   };
 
   return (
-    <div className={`flex flex-col w-full max-w-3xl mx-auto min-h-0 ${hasInteracted ? 'h-full' : 'h-auto'}`}>
+    <div className={`flex flex-col w-full max-w-3xl mx-auto ${hasInteracted ? 'h-full min-h-0 flex-1' : 'h-auto'}`}>
 
       {/* Message Display Area */}
       <div
         className={`
-          relative flex-1 overflow-y-auto transition-all duration-1000 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] pr-4 pl-1 space-y-6 pb-6 scrollbar-modern
-          ${hasInteracted ? 'flex opacity-100 min-h-0' : 'hidden opacity-0 h-0'}
+          relative flex-1 overflow-y-auto transition-all duration-1000 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] pr-4 pl-1 scrollbar-modern min-h-0
+          ${hasInteracted ? 'flex flex-col opacity-100' : 'hidden opacity-0 h-0'}
         `}
       >
-        <div className="flex flex-col w-full space-y-6 animate-in fade-in duration-1000">
+        <div className="flex flex-col w-full space-y-6 pb-6 pt-2 animate-in fade-in duration-1000">
+          {/* Display uploaded files as user messages (oldest first, like chat) */}
+          {session && [...uploadedFiles].reverse().map((file) => (
+            <div
+              key={file.id}
+              className="flex gap-4 w-full justify-end animate-in fade-in slide-in-from-bottom-2 duration-300"
+            >
+              <div className="relative flex flex-col max-w-[85%] sm:max-w-[80%] px-5 py-3 shadow-sm text-[15px] leading-relaxed bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900 rounded-[20px] rounded-tr-sm">
+                <div className="flex items-center gap-3">
+                  <div className="shrink-0 p-2 bg-zinc-800 dark:bg-zinc-200 rounded-lg">
+                    <FileText className="h-4 w-4 text-zinc-50 dark:text-zinc-900" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm mb-1 truncate">{file.name}</div>
+                    <div className="text-xs opacity-70">
+                      {file.status === 'COMPLETED' ? 'Ready for questions' : 
+                       file.status === 'PROCESSING' ? 'Processing...' : 
+                       file.status === 'PENDING' ? 'Pending...' : 'Failed'}
+                    </div>
+                  </div>
+                </div>
+                {file.url && (
+                  <a
+                    href={file.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 text-xs underline opacity-80 hover:opacity-100 transition-opacity"
+                  >
+                    View PDF
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* Display chat messages */}
           {messages && messages.length > 0 ? (
             messages.map((message) => (
               <div
@@ -193,9 +262,9 @@ export default function FormChat({ onInteraction }: FormChatProps) {
                 </div>
               </div>
             ))
-          ) : (
+          ) : uploadedFiles.length === 0 ? (
             <div className="h-4"></div>
-          )}
+          ) : null}
 
           {/* Loading Bubble (Chat or Upload) */}
           {(isLoading || isUploading) && (
@@ -233,7 +302,7 @@ export default function FormChat({ onInteraction }: FormChatProps) {
 
       {/* Input Area */}
       <div className={`
-        relative pb-2 transition-all duration-700 ease-out
+        relative pb-2 shrink-0 transition-all duration-700 ease-out
         ${hasInteracted ? 'mt-4 pt-0' : 'mt-0'}
       `}>
         <form

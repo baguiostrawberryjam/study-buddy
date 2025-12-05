@@ -13,6 +13,18 @@ export default function Login() {
   return (
     <div className="min-h-screen w-full flex flex-col bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-gray-100 overflow-hidden relative">
 
+      {/* Stage Light Gradient Effects - Left Side */}
+      <div className="fixed left-0 top-0 bottom-0 w-96 pointer-events-none z-0 opacity-30 dark:opacity-20">
+        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/50 to-transparent dark:from-white/10 dark:via-white/5 dark:to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/20 to-transparent dark:via-white/5" />
+      </div>
+
+      {/* Stage Light Gradient Effects - Right Side */}
+      <div className="fixed right-0 top-0 bottom-0 w-96 pointer-events-none z-0 opacity-30 dark:opacity-20">
+        <div className="absolute inset-0 bg-gradient-to-l from-white via-white/50 to-transparent dark:from-white/10 dark:via-white/5 dark:to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/20 to-transparent dark:via-white/5" />
+      </div>
+
       {/* --- Top Navigation --- */}
       <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-center z-10">
         {/* Logo - Leads to Home */}
@@ -34,7 +46,7 @@ export default function Login() {
       </div>
 
       {/* --- Main Content --- */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 w-full max-w-lg mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-4 sm:p-6 w-full max-w-lg mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
 
         {/* Header Section */}
         <div className="text-center mb-8 space-y-2">
@@ -56,7 +68,7 @@ export default function Login() {
         <p className="mt-8 text-center text-sm text-gray-500">
           Don&apos;t have an account?{" "}
           <Link href="/signup" className="font-semibold text-zinc-900 dark:text-white hover:underline">
-            Sign up
+            Sign-up
           </Link>
         </p>
 

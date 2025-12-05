@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '../../lib/authOptions'
 import { embed } from 'ai'
 import prisma from '../../lib/prisma'
+import { Prisma } from '@prisma/client'
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
@@ -26,32 +27,62 @@ export async function POST(req: Request) {
     })
 
     // 1.2 Vector similarity search in Neon PostgreSQL
-    const results = await prisma.$queryRawUnsafe<
-      {
-        content: string
-        metadata: any
-        similarity: number
-      }[]
-    >(`
-      SELECT 
-        "content",
-        "metadata",
-        1 - ("vector" <=> '${JSON.stringify(
-      queryEmbedding.embedding
-    )}') as similarity
-      FROM "Embedding"
-      WHERE "fileId" IN (
-        SELECT id FROM "File"
-        WHERE "userId" = '${user?.id}' AND status = 'COMPLETED'
-      )
-      ORDER BY "vector" <=> '${JSON.stringify(queryEmbedding.embedding)}'
-      LIMIT 5;
-    `)
+    // SECURITY FIX: Get file IDs first using Prisma (safe), then do vector search
+    const userId = user?.id || ''
 
-    // 1.3 Combine retrieved chunks
-    if (results.length > 0) {
-      ragContext = results.map((r) => r.content).join('\n\n---\n\n')
+    // Validate userId is a valid CUID format (basic check)
+    if (!userId || !/^c[a-z0-9]{24}$/.test(userId)) {
+      throw new Error('Your session appears to be invalid. Please sign out and sign back in to continue using StudyBuddy.')
     }
+
+    // First, get user's file IDs safely using Prisma
+    const userFiles = await prisma.file.findMany({
+      where: {
+        userId: userId,
+        status: 'COMPLETED',
+      },
+      select: {
+        id: true,
+      },
+    })
+
+    if (userFiles.length > 0) {
+      // File IDs come from Prisma (safe), user ID already validated
+      const fileIds = userFiles.map(f => f.id)
+      // Validate all file IDs are valid CUIDs
+      const validFileIds = fileIds.filter(id => /^c[a-z0-9]{24}$/.test(id))
+
+      if (validFileIds.length > 0) {
+        const embeddingVector = JSON.stringify(queryEmbedding.embedding)
+        // Escape file IDs for safe SQL (they're already validated CUIDs from Prisma)
+        const escapedFileIds = validFileIds.map(id => `'${id.replace(/'/g, "''")}'`).join(', ')
+
+        // Use parameterized query with Prisma.sql
+        // Note: Vector operations require casting, embedding is from trusted AI SDK
+        const results = await prisma.$queryRaw<{
+          content: string
+          metadata: any
+          similarity: number
+        }[]>(
+          Prisma.sql`
+            SELECT 
+              "content",
+              "metadata",
+              1 - ("vector" <=> ${embeddingVector}::vector) as similarity
+            FROM "Embedding"
+            WHERE "fileId" IN (${Prisma.raw(escapedFileIds)})
+            ORDER BY "vector" <=> ${embeddingVector}::vector
+            LIMIT 5
+          `
+        )
+
+        // 1.3 Combine retrieved chunks
+        if (results.length > 0) {
+          ragContext = results.map((r) => r.content).join('\n\n---\n\n')
+        }
+      }
+    }
+
   }
 
   // Default
@@ -59,7 +90,7 @@ export async function POST(req: Request) {
   const systemPrompt = !session
     ? `
     You are StudyBuddy, a friendly virtual tutor.
-    The user it not logged in, so politely explain that signing in will unlock:
+    The user is not logged in, so politely explain that signing in will unlock:
     - Personalised tutoring and chat experience.
     - Answer based on their uploaded documents (RAG)
   `

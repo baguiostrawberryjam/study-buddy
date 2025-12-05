@@ -93,7 +93,7 @@ async function parsePDFWithGemini(
     }
 
     if (file.state === 'FAILED') {
-      throw new Error('Gemini failed to process the PDF')
+      throw new Error('The AI service was unable to process your PDF file. The file may be corrupted, password-protected, or in an unsupported format. Please ensure your PDF is readable and try again.')
     }
 
     console.log('File processed successfully, extracting text...')
@@ -126,7 +126,7 @@ async function parsePDFWithGemini(
     const sanitized = sanitizeText(extractedText)
 
     if (!sanitized) {
-      throw new Error('Gemini returned empty text content')
+      throw new Error('The PDF file was processed but no text content could be extracted. This usually means the PDF contains only images or scanned pages without OCR. Please use a PDF with selectable text or convert scanned documents first.')
     }
 
     return sanitized
@@ -142,23 +142,24 @@ async function parsePDFWithGemini(
 
 export async function uploadAndEmbedFile(prevState: any, formData: FormData) {
   const session = await getServerSession(authOptions)
-  if (!session) return { error: 'Unauthorized' }
+  if (!session) return { error: 'You must be logged in to upload files. Please sign in and try again.' }
 
   const userId = session.user.id
   const file = formData.get('file') as File
 
   if (!file || file.size === 0) {
-    return { error: 'No file provided.' }
+    return { error: 'No file was selected or the file is empty. Please choose a PDF file to upload.' }
   }
 
   if (file.type !== 'application/pdf') {
-    return { error: 'File must be a PDF.' }
+    return { error: `The file "${file.name}" is not a PDF document. Only PDF files are currently supported. Please convert your file to PDF format and try again.` }
   }
 
   // Gemini supports up to 50MB PDFs
   const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
   if (file.size > MAX_FILE_SIZE) {
-    return { error: 'File size exceeds 50MB limit.' }
+    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+    return { error: `The file "${file.name}" is too large (${fileSizeMB} MB). Maximum file size allowed is 50 MB. Please compress your PDF or choose a smaller file.` }
   }
 
   let blobUrl: string | null = null
@@ -177,7 +178,7 @@ export async function uploadAndEmbedFile(prevState: any, formData: FormData) {
     } catch (parseError: any) {
       console.error('PDF parsing failed:', parseError)
       return {
-        error: parseError.message || 'Failed to parse PDF.',
+        error: `Unable to extract text from the PDF "${file.name}". ${parseError.message || 'The file may be corrupted, password-protected, or contain only images. Please ensure your PDF contains readable text and try again.'}`,
       }
     }
 
@@ -185,7 +186,7 @@ export async function uploadAndEmbedFile(prevState: any, formData: FormData) {
     const chunks = chunkText(rawText)
 
     if (chunks.length === 0) {
-      return { error: 'No text content found in PDF.' }
+      return { error: `No readable text content was found in the PDF "${file.name}". The file may contain only images or scanned pages. Please use a PDF with selectable text or convert scanned documents using OCR (Optical Character Recognition) first.` }
     }
 
     console.log(`✓ Split into ${chunks.length} chunks`)
@@ -203,7 +204,7 @@ export async function uploadAndEmbedFile(prevState: any, formData: FormData) {
     } catch (embeddingError: any) {
       console.error('Embedding generation failed:', embeddingError)
       return {
-        error: embeddingError.message || 'Failed to generate embeddings.',
+        error: `Unable to process the document for AI search. ${embeddingError.message || 'This may be due to a temporary service issue. Please try again in a few moments. If the problem persists, contact support.'}`,
       }
     }
 
@@ -297,7 +298,7 @@ export async function uploadAndEmbedFile(prevState: any, formData: FormData) {
     }
 
     return {
-      error: error.message || 'Failed to process file. Please try again.',
+      error: `File processing failed for "${file.name}". ${error.message || 'An unexpected error occurred during file processing. The file may be corrupted or there may be a temporary service issue. Please try again or contact support if the problem continues.'}`,
     }
   }
 }

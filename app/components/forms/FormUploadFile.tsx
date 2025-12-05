@@ -42,9 +42,12 @@ export default function FormUploadFile({
     const file = e.target.files?.[0]
     setClientError(null)
 
-    if (file && file.size > 5 * 1024 * 1024) {
-      setClientError('File is too large. Max size is 5MB.')
-      toast.error('File is too large. Max size is 5MB.')
+    const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+    if (file && file.size > MAX_FILE_SIZE) {
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      const errorMsg = `File "${file.name}" is too large (${fileSizeMB} MB). Maximum file size allowed is 50 MB. Please compress your PDF or choose a smaller file.`;
+      setClientError(errorMsg)
+      toast.error(errorMsg)
       e.target.value = ''
     }
   }
@@ -74,7 +77,7 @@ export default function FormUploadFile({
             disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <p className="mt-1 text-xs text-gray-500">
-          Max 5MB. This will be added to your AI knowledge base.
+          Max 50MB. This will be added to your AI knowledge base.
         </p>
       </div>
 

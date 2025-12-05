@@ -21,7 +21,7 @@ export default function FormLogin() {
     const password = formData.get('password') as string;
 
     if (!email || !password) {
-      setError("Please fill in all fields");
+      setError("Please enter both your email address and password to sign in.");
       setIsLoading(false);
       return;
     }
@@ -35,7 +35,7 @@ export default function FormLogin() {
       });
 
       if (res?.error) {
-        setError("Invalid email or password"); // Or use res.error for specific messages
+        setError("The email address or password you entered is incorrect. Please check your credentials and try again. If you've forgotten your password, you may need to create a new account.");
         setIsLoading(false);
       } else {
         // Login successful
@@ -43,7 +43,8 @@ export default function FormLogin() {
         router.push('/'); // Redirect to home/dashboard
       }
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      console.error('Login error:', err);
+      setError("Unable to sign in at this time. This may be due to a temporary connection issue. Please check your internet connection and try again. If the problem persists, contact support.");
       setIsLoading(false);
     }
   };
