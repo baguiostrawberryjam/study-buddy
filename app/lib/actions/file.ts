@@ -83,11 +83,12 @@ export async function deleteFile(
   prevState: ActionResponse<FileModel>,
   formData: FormData
 ): Promise<ActionResponse<FileModel>> {
+  let file: FileModel | null = null
   try {
     const fileData = formData.get('file') as string
 
     // 4. This part was already correct in your snippet
-    const file: FileModel = JSON.parse(fileData)
+    file = JSON.parse(fileData) as FileModel
 
     const deletions = await Promise.all([
       del(file.url as string),
@@ -101,7 +102,7 @@ export async function deleteFile(
     console.log('Deletions', deletions)
 
     // 5. This works now because FileModel definitely has 'userId'
-    revalidateTag(`files-${file.userId}`)
+    revalidateTag(`files-${file.userId}`, 'page')
 
     return {
       success: true,
@@ -112,6 +113,7 @@ export async function deleteFile(
 
   } catch (error) {
     console.log('Error deleting file: ', error)
+    const fileName = file?.name || 'file'
     return {
       success: false,
       payload: null,
@@ -119,7 +121,7 @@ export async function deleteFile(
       errors: [
         {
           field: 'system',
-          message: `Failed to delete "${file.name}". This may be due to a temporary server issue or the file may have already been removed. Please refresh the page and try again. If the problem persists, contact support.`,
+          message: `Failed to delete "${fileName}". This may be due to a temporary server issue or the file may have already been removed. Please refresh the page and try again. If the problem persists, contact support.`,
         },
       ],
     }

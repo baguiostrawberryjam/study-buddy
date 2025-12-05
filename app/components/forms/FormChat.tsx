@@ -17,7 +17,7 @@ interface FormChatProps {
 export default function FormChat({ onInteraction }: FormChatProps) {
   // Session for user ID
   const { data: session } = useSession();
-  
+
   // AI SDK
   const { messages, sendMessage } = useChat({
     onError: (error) => {
@@ -157,14 +157,14 @@ export default function FormChat({ onInteraction }: FormChatProps) {
       formData.append('file', file);
 
       // Call the server action directly
-      // Passing 'null' as the first argument because the action expects 'prevState'
-      const result = await uploadAndEmbedFile(null, formData);
+      // Passing initial state object as the first argument
+      const result = await uploadAndEmbedFile({ error: '' }, formData);
 
-      if (result.error) {
+      if ('error' in result && result.error) {
         toast.error(result.error);
         setError(result.error);
-      } else {
-        toast.success("File added to knowledge base!");
+      } else if ('success' in result && result.success) {
+        toast.success(result.message || "File added to knowledge base!");
         // Refresh files list after successful upload
         if (session?.user?.id) {
           const filesResult = await getFilesByUser(session.user.id);
@@ -212,9 +212,9 @@ export default function FormChat({ onInteraction }: FormChatProps) {
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm mb-1 truncate">{file.name}</div>
                     <div className="text-xs opacity-70">
-                      {file.status === 'COMPLETED' ? 'Ready for questions' : 
-                       file.status === 'PROCESSING' ? 'Processing...' : 
-                       file.status === 'PENDING' ? 'Pending...' : 'Failed'}
+                      {file.status === 'COMPLETED' ? 'Ready for questions' :
+                        file.status === 'PROCESSING' ? 'Processing...' :
+                          file.status === 'PENDING' ? 'Pending...' : 'Failed'}
                     </div>
                   </div>
                 </div>

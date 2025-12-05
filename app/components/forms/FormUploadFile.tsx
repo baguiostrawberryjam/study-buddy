@@ -10,11 +10,9 @@ export default function FormUploadFile({
 }: {
   setShowModal: React.Dispatch<React.SetStateAction<boolean>>
 }) {
-  // Initial state
-  const initialState = {
-    message: '',
+  // Initial state - useActionState expects either error OR success+message, not both
+  const initialState: { error: string } | { success: boolean; message: string } = {
     error: '',
-    success: false,
   }
 
   // Action
@@ -28,15 +26,15 @@ export default function FormUploadFile({
 
   // Side effects: toast + modal
   useEffect(() => {
-    if (state.success) {
+    if ('success' in state && state.success) {
       setShowModal(false)
       toast.success(state.message)
     }
 
-    if (state.error) {
+    if ('error' in state && state.error) {
       toast.error(state.error)
     }
-  }, [state.success, state.error, state.message, setShowModal])
+  }, [state, setShowModal])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

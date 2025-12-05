@@ -48,14 +48,14 @@ export async function POST(req: Request) {
 
     if (userFiles.length > 0) {
       // File IDs come from Prisma (safe), user ID already validated
-      const fileIds = userFiles.map((f: { id: string }) => f.id)
+      const fileIds: string[] = userFiles.map((f: { id: string }) => f.id)
       // Validate all file IDs are valid CUIDs
-      const validFileIds = fileIds.filter((id: string) => /^c[a-z0-9]{24}$/.test(id))
+      const validFileIds: string[] = fileIds.filter((id: string) => /^c[a-z0-9]{24}$/.test(id))
 
       if (validFileIds.length > 0) {
         const embeddingVector = JSON.stringify(queryEmbedding.embedding)
         // Escape file IDs for safe SQL (they're already validated CUIDs from Prisma)
-        const escapedFileIds = validFileIds.map(id => `'${id.replace(/'/g, "''")}'`).join(', ')
+        const escapedFileIds: string = validFileIds.map((id: string) => `'${id.replace(/'/g, "''")}'`).join(', ')
 
         // Use parameterized query with Prisma.sql
         // Note: Vector operations require casting, embedding is from trusted AI SDK
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
 
         // 1.3 Combine retrieved chunks
         if (results.length > 0) {
-          ragContext = results.map((r) => r.content).join('\n\n---\n\n')
+          ragContext = results.map((r: { content: string; metadata: any; similarity: number }) => r.content).join('\n\n---\n\n')
         }
       }
     }

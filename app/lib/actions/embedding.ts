@@ -140,7 +140,10 @@ async function parsePDFWithGemini(
   }
 }
 
-export async function uploadAndEmbedFile(prevState: any, formData: FormData) {
+export async function uploadAndEmbedFile(
+  prevState: { error: string } | { success: boolean; message: string },
+  formData: FormData
+): Promise<{ error: string } | { success: boolean; message: string }> {
   const session = await getServerSession(authOptions)
   if (!session) return { error: 'You must be logged in to upload files. Please sign in and try again.' }
 
@@ -264,7 +267,7 @@ export async function uploadAndEmbedFile(prevState: any, formData: FormData) {
       data: { status: 'COMPLETED' },
     })
 
-    revalidateTag(`files-${userId}`)
+    revalidateTag(`files-${userId}`, 'page')
 
     console.log('✅ File processing complete!')
     return {
