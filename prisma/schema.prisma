@@ -1,12 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider        = "prisma-client-js"
-  // 1. Add this line to enable extension management
   previewFeatures = ["postgresqlExtensions"]
 }
 
@@ -14,7 +7,6 @@ datasource db {
   provider          = "postgresql"
   url               = env("DATABASE_URL")
   shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
-  // 2. Add this line to tell Postgres to create the extension
   extensions        = [vector]
 }
 
@@ -24,49 +16,51 @@ model User {
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
-  files     File[]
   chats     Chat[]
+  files     File[]
 }
 
-// --------------------------------------------------------
-// 2. KNOWLEDGE BASE (RAG Sources)
-// --------------------------------------------------------
 model File {
-  id       String  @id @default(cuid())
-  name     String
-  url      String? // If stored in S3/Blob storage
-  mimeType String // e.g., application/pdf, text/plain
-
-  // Processing status
-  status FileStatus @default(PENDING)
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id         String      @id @default(cuid())
+  name       String
+  url        String?
+  mimeType   String
+  status     FileStatus  @default(PENDING)
+  userId     String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
   embeddings Embedding[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model Embedding {
-  id      String @id @default(cuid())
-  content String // The actual text chunk
+  id       String                @id @default(cuid())
+  content  String
+  vector   Unsupported("vector")
+  metadata Json?
+  fileId   String
+  file     File                  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+}
 
-  // The vector data. 
-  // Google Gemini (text-embedding-004) = 768 dimensions.
-  vector Unsupported("vector(768)")
+model Chat {
+  id        String    @id @default(cuid())
+  title     String    @default("New Chat")
+  userId    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+}
 
-  metadata Json? // Store page numbers, line numbers, etc.
-
-  // Cascading deletion of file to our knowledgebase
-  fileId String
-  file   File   @relation(fields: [fileId], references: [id], onDelete: Cascade)
-
-  // Explicit index for fast vector similarity search (HNSW)
-  // Note: This often requires raw SQL to tune, but this is the logical link.
+model Message {
+  id        String   @id @default(cuid())
+  role      Role
+  content   String
+  chatId    String
+  createdAt DateTime @default(now())
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
 }
 
 enum FileStatus {
@@ -74,33 +68,6 @@ enum FileStatus {
   PROCESSING
   COMPLETED
   FAILED
-}
-
-// --------------------------------------------------------
-// 3. CHAT & MESSAGES
-// --------------------------------------------------------
-model Chat {
-  id    String @id @default(cuid())
-  title String @default("New Chat")
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  messages Message[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Message {
-  id      String @id @default(cuid())
-  role    Role // USER or ASSISTANT
-  content String
-
-  chatId String
-  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
 }
 
 enum Role {
