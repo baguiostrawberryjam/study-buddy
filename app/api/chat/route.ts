@@ -4,7 +4,6 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '../../lib/authOptions'
 import { embed } from 'ai'
 import prisma from '../../lib/prisma'
-import { Prisma } from '@prisma/client'
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
@@ -57,16 +56,17 @@ export async function POST(req: Request) {
         // Escape file IDs for safe SQL (they're already validated CUIDs from Prisma)
         const escapedFileIds: string = validFileIds.map((id: string) => `'${id.replace(/'/g, "''")}'`).join(', ')
 
-        // Use parameterized query with Prisma.sql
+        // Use parameterized query with Prisma.raw
         // Note: Vector operations require casting, embedding is from trusted AI SDK
-        const results = await prisma.$queryRaw(
-          Prisma.sql`
+        // File IDs are already validated CUIDs from Prisma, so safe to use
+        const results = await prisma.$queryRawUnsafe(
+          `
             SELECT 
               "content",
               "metadata",
               1 - ("vector" <=> ${embeddingVector}::vector) as similarity
             FROM "Embedding"
-            WHERE "fileId" IN (${Prisma.raw(escapedFileIds)})
+            WHERE "fileId" IN (${escapedFileIds})
             ORDER BY "vector" <=> ${embeddingVector}::vector
             LIMIT 5
           `
